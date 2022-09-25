@@ -12,25 +12,117 @@
   <body>
     <script src="//mozilla.github.io/pdf.js/build/pdf.js"></script>
 
-    <h1>PDF.js</h1>
-
     <script type="text/javascript">
+      let pageNumber = 1
+      var numPages
+
+      const nextPage = () => {
+        pageNumber++
+        loadingTask.promise.then(
+          function (pdf) {
+            // Get the page
+            pdf.getPage(pageNumber).then(function (page) {
+              var scale = 1.5
+              var viewport = page.getViewport({ scale: scale })
+
+              // Setting dimensions
+              var canvas = document.getElementById('myCanvas')
+              var context = canvas.getContext('2d')
+              canvas.height = viewport.height
+              canvas.width = viewport.width
+
+              // Render into canvas context
+              var renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+              }
+              var renderTask = page.render(renderContext)
+              renderTask.promise.then(function () {
+                console.log('Page rendered')
+              })
+            })
+          },
+          function (reason) {
+            // PDF loading error
+            console.error(reason)
+          },
+        )
+        pageNumber == numPages && nextButton.setAttribute('disabled', 'true')
+        pageNumber > 1 && prevButton.removeAttribute('disabled')
+      }
+
+      const prevPage = () => {
+        pageNumber--
+        loadingTask.promise.then(
+          function (pdf) {
+            // Get first page
+            pdf.getPage(pageNumber).then(function (page) {
+              var scale = 1.5
+              var viewport = page.getViewport({ scale: scale })
+
+              // Setting dimensions
+              var canvas = document.getElementById('myCanvas')
+              var context = canvas.getContext('2d')
+              canvas.height = viewport.height
+              canvas.width = viewport.width
+
+              // Render into canvas context
+              var renderContext = {
+                canvasContext: context,
+                viewport: viewport,
+              }
+              var renderTask = page.render(renderContext)
+              renderTask.promise.then(function () {
+                console.log('Page rendered')
+              })
+            })
+          },
+          function (reason) {
+            // PDF loading error
+            console.error(reason)
+          },
+        )
+        pageNumber === 1 && prevButton.setAttribute('disabled', 'true')
+        pageNumber < numPages && nextButton.removeAttribute('disabled')
+      }
+
+      const base = document.createElement('base')
+      base.setAttribute('href', 'https://mozilla.github.io')
+
+      document.head.append(base)
+
+      const nextButton = document.createElement('button')
+      nextButton.textContent = '++'
+      nextButton.setAttribute('onclick', 'nextPage();')
+      const prevButton = document.createElement('button')
+      prevButton.setAttribute('onclick', 'prevPage();')
+      prevButton.textContent = '--'
+      pageNumber == 1 && prevButton.setAttribute('disabled', 'true')
+
+      document.body.append(nextButton)
+      document.body.append(prevButton)
+
       const canvas = document.createElement('canvas')
       canvas.setAttribute('id', 'myCanvas')
       document.body.append(canvas)
 
-      var url =
-        'https://raw.githubusercontent.com/mozilla/pdf.js/ba2edeae/examples/learning/helloworld.pdf'
+      var url = './sample.pdf'
       var pdfjsLib = window['pdfjs-dist/build/pdf']
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         '//mozilla.github.io/pdf.js/build/pdf.worker.js'
 
-      // Fetch
       var loadingTask = pdfjsLib.getDocument(url)
+
+      pdfjsLib.getDocument(url).promise.then(function (doc) {
+        numPages = doc.numPages
+        console.log('# Document Loaded')
+        console.log('Number of Pages: ' + numPages)
+      })
+
+      // Fetch
       loadingTask.promise.then(
         function (pdf) {
           // Get the first page
-          var pageNumber = 1
           pdf.getPage(pageNumber).then(function (page) {
             console.log('Page loaded')
 
@@ -53,7 +145,13 @@
               console.log('Page rendered')
             })
           })
+          pdf.getDocument(url).then(function (doc) {
+            var numPages = doc.numPages
+            console.log('# Document Loaded')
+            console.log('Number of Pages: ' + numPages)
+          })
         },
+
         function (reason) {
           // PDF loading error
           console.error(reason)
